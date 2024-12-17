@@ -35,13 +35,13 @@ const (
 func (s suit) String() string {
 	switch s {
 	case Hearts:
-		return "♥"
+		return hearts_style.Render("♥")
 	case Diamonds:
-		return "♦"
+		return diamonds_style.Render("♦")
 	case Spades:
-		return "♠"
+		return spades_style.Render("♠")
 	case Clubs:
-		return "♣"
+		return clubs_style.Render("♣")
 	default:
 		panic(fmt.Errorf("Invalid suit"))
 	}
@@ -98,11 +98,9 @@ func (r rank) String() string {
 
 var hearts_style = lipgloss.NewStyle().
 	Bold(true).
-	Foreground(lipgloss.Color("#ff007c")).
-	Background(lipgloss.Color("#fff2e8"))
+	Foreground(lipgloss.Color("#ff007c"))
 var diamonds_style = hearts_style
 var spades_style = lipgloss.NewStyle().
 	Bold(true).
-	Foreground(lipgloss.Color("#09031c")).
-	Background(lipgloss.Color("#fff2e8"))
+	Foreground(lipgloss.Color("#09031c"))
 var clubs_style = spades_style
