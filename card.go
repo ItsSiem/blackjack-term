@@ -1,13 +1,28 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 type card struct {
 	suit suit
 	rank rank 
 }
 func (c card) String() string {
-	return fmt.Sprintf("%s%s", c.suit, c.rank)
+	var style lipgloss.Style
+	switch c.suit {
+	case Hearts:
+		style = hearts_style
+	case Diamonds:
+		style = diamonds_style
+	case Spades:
+		style = spades_style
+	case Clubs:
+		style = clubs_style
+	}
+	return style.Render(fmt.Sprintf("%s%s", c.suit, c.rank))
 }
 
 type suit int
@@ -20,13 +35,13 @@ const (
 func (s suit) String() string {
 	switch s {
 	case Hearts:
-		return "♥";
+		return "♥"
 	case Diamonds:
-		return "♦";
+		return "♦"
 	case Spades:
-		return "♠";
+		return "♠"
 	case Clubs:
-		return "♣";
+		return "♣"
 	default:
 		panic(fmt.Errorf("Invalid suit"))
 	}
@@ -80,3 +95,14 @@ func (r rank) String() string {
 		panic(fmt.Errorf("Invalid rank"))
 	}
 }
+
+var hearts_style = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#ff007c")).
+	Background(lipgloss.Color("#fff2e8"))
+var diamonds_style = hearts_style
+var spades_style = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#09031c")).
+	Background(lipgloss.Color("#fff2e8"))
+var clubs_style = spades_style
