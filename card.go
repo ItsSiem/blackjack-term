@@ -102,5 +102,5 @@ var hearts_style = lipgloss.NewStyle().
 var diamonds_style = hearts_style
 var spades_style = lipgloss.NewStyle().
 	Bold(true).
-	Foreground(lipgloss.Color("#09031c"))
+	Foreground(lipgloss.Color("#022e75"))
 var clubs_style = spades_style

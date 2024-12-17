@@ -17,6 +17,7 @@ var (
 	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	highlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
 	special   = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
+	table     = lipgloss.Color("#0c3008")
 
 	// Styles
 	header_style = lipgloss.NewStyle().
@@ -62,7 +63,15 @@ func initalModel() model {
 						{Diamonds, Ace},
 					},
 				},
+				{
+					bet: 250,
+					cards: []card{
+						{Diamonds, Ace},
+						{Diamonds, Six},
+					},
+				},
 			},
+			balance: 100,
 		},
 	}
 }
@@ -80,8 +89,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Exit dialog
 			return m, tea.Quit
 		case "left":
-			if (m.selected_hand - 1 <= 0) {
-				m.selected_hand = len(m.player.hands)
+			if (m.selected_hand - 1 < 0) {
+				m.selected_hand = len(m.player.hands) - 1
 			}else {
 				m.selected_hand -= 1
 			}
@@ -123,13 +132,13 @@ func (m model) View() string {
 
 	s = lipgloss.JoinVertical(lipgloss.Center, s, hr)
 
-	s += "\n"
+	s += "\n\n\n\n\n"
 
 	s = lipgloss.JoinVertical(lipgloss.Center, s, print_player(m))
 
 	s = lipgloss.NewStyle().
-		Width(80).
-		Height(20).
+		Width(width).
+		Height(height).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(subtle).
 		Render(s)
@@ -152,10 +161,12 @@ func print_cards(cards []card) string {
 
 func print_card(c card) string {
 	s := lipgloss.NewStyle().
+		Bold(true).
 		Align(lipgloss.Top, lipgloss.Left).
 		Render(c.suit.String())
 	s += "\n"
 	s += lipgloss.NewStyle().
+		Bold(true).
 		MarginLeft(2).
 		Render(c.rank.String())
 	s = lipgloss.NewStyle().
@@ -165,29 +176,35 @@ func print_card(c card) string {
 }
 
 func print_player(m model) string {
+	p_width := 60
 	p := m.player
-	cards := print_cards(p.hands[m.selected_hand].cards)
+	cards := lipgloss.NewStyle().Margin(0, 2).Render(print_cards(p.hands[m.selected_hand].cards))
 	page := lipgloss.NewStyle().
 		Foreground(subtle).
 		Bold(true).
 		Render(fmt.Sprintf("%d/%d", m.selected_hand + 1, len(p.hands)))
+	page_spacer := lipgloss.NewStyle().
+		Width((p_width - lipgloss.Width(cards)) / 2 - lipgloss.Width(page)).
+		Render();
 	bet := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFBF00")).
 		Bold(true).
 		Render(fmt.Sprintf("%dg", p.hands[m.selected_hand].bet))
+	bet_spacer := lipgloss.NewStyle().
+		Width(p_width / 2 - lipgloss.Width(cards) / 2 - lipgloss.Width(bet)).
+		Render()
 	balance := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFBF00")).
 		Bold(true).
 		Render(fmt.Sprintf("%dg", p.balance))
 
 	hr := lipgloss.NewStyle().
-		Width(50).
+		Width(p_width).
 		Border(lipgloss.NormalBorder(), true, false, false, false).
 		BorderForeground(subtle).
 		Render("")
 
-	s := lipgloss.JoinHorizontal(lipgloss.Left, bet, page)
-	s = lipgloss.JoinVertical(lipgloss.Top, cards, s)
+	s := lipgloss.JoinHorizontal(lipgloss.Bottom, bet, bet_spacer , cards, page_spacer, page)
 	s = lipgloss.JoinVertical(lipgloss.Center, s, hr)
 	s = lipgloss.JoinVertical(lipgloss.Left, s, balance)
 	return s
