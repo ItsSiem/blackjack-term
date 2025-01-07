@@ -2,15 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	bj "github.com/kraanter/blackjack/pkg/blackjack"
 )
 
 var (
-	width = 80
+	width  = 80
 	height = 24
 
 	// Colors
@@ -21,67 +24,57 @@ var (
 
 	// Styles
 	header_style = lipgloss.NewStyle().
-		Width(width).
-		AlignHorizontal(lipgloss.Center).
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderBottom(true)
+			Width(width).
+			AlignHorizontal(lipgloss.Center).
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderBottom(true)
 )
 
-type hand struct {
-	cards []card
-	bet int
-}
-
-func hit(h *hand) {
-	h.cards = append(h.cards, card{Spades, Ace})
-}
-
-type player struct {
-	hands []hand
-	balance int
-}
-
 type model struct {
-	dealer []card
-	player *player
+	game          *bj.BlackjackGame
+	player        *bj.Player
 	selected_hand int
+	kaasje        int
 }
 
 func initalModel() model {
-	return model {
-		dealer: []card{
-			{Hearts, Two},
-			{Spades, King},
-		},
-		player: &player{
-			hands: []hand{
-				{
-					bet: 10,
-					cards: []card{
-						{Diamonds, Seven},
-						{Spades, Nine},
-						{Diamonds, Ace},
-					},
-				},
-				{
-					bet: 250,
-					cards: []card{
-						{Diamonds, Ace},
-						{Diamonds, Six},
-					},
-				},
-			},
-			balance: 100,
-		},
+
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		game.SetPlayerBet(player.PlayerNum, 25)
+	}()
+	game.Start()
+	return model{
+		game:   game,
+		player: player,
 	}
 }
 
+type update struct{}
+
 func (m model) Init() tea.Cmd {
-    // Just return `nil`, which means "no I/O right now, please."
-    return nil
+	// Just return `nil`, which means "no I/O right now, please."
+	// m.game.OnGameUpdate = func(bg *bj.BlackjackGame) {
+	// 	log.Printf("\n---\ngame_update: %v\n\nplayers:", game.GameState)
+	//
+	// 	log.Println(player.String())
+	//
+	// 	log.Println("Dealer: ", game.Dealer.String())
+	//
+	// 	if game.GameState == bj.NoState {
+	// 		go func() {
+	// 			time.Sleep(10 * time.Millisecond)
+	// 			game.SetPlayerBet(player.PlayerNum, 25)
+	// 		}()
+	// 		go game.Start()
+	// 	}
+	// 	p.Send(update{})
+	// }
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	log.Println("kaas", msg)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch strings.ToLower(msg.String()) {
@@ -89,23 +82,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Exit dialog
 			return m, tea.Quit
 		case "left":
-			if (m.selected_hand - 1 < 0) {
-				m.selected_hand = len(m.player.hands) - 1
-			}else {
+			if m.selected_hand-1 < 0 {
+				//	m.selected_hand = len(m.player.Hands) - 1
+			} else {
 				m.selected_hand -= 1
 			}
 		case "right":
-			if (m.selected_hand + 1 >= len(m.player.hands)) {
-				m.selected_hand = 0
-			}else {
-				m.selected_hand += 1
-			}
+			//if (m.selected_hand + 1 >= len(m.player.hands)) {
+			//	m.selected_hand = 0
+			//}else {
+			//m.selected_hand += 1
+			//}
 
 		// Game inputs
 		case "h":
-			hit(&m.player.hands[m.selected_hand]);
+			m.game.PlayerHit(m.player.PlayerNum)
 		case "s":
-			// Stand
+			m.game.PlayerStand(m.player.PlayerNum)
 		case "d":
 			// Double
 		case "p":
@@ -116,7 +109,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		//width = msg.Width
 		//height = msg.Height
 	}
-	return m, nil;
+	return m, nil
 }
 
 func (m model) View() string {
@@ -147,28 +140,41 @@ func (m model) View() string {
 
 func print_dealer(m model) string {
 	s := lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("Dealer:"))
-	s = lipgloss.JoinVertical(lipgloss.Center, s, print_cards(m.dealer))
+	s = lipgloss.JoinVertical(lipgloss.Center, s, print_hand(m.game.Dealer))
 	return s
 }
 
-func print_cards(cards []card) string {
+func print_hand(hand *bj.Hand) string {
 	s := ""
-	for _, c := range cards {
+	if hand == nil {
+		return s
+	}
+	for _, c := range hand.Cards {
 		s = lipgloss.JoinHorizontal(lipgloss.Top, s, print_card(c))
 	}
-	return s
+	col := special 
+	if hand.IsLocked() {
+		col = subtle
+	}
+	if hand.Total() == 21 {
+		col = highlight 
+	}
+	if hand.Total() > 21 {
+		col = lipgloss.AdaptiveColor{Light: "#FF0000", Dark: "FF0000"}
+	}
+	return lipgloss.NewStyle().Foreground(col).Render(s)
 }
 
-func print_card(c card) string {
+func print_card(c *bj.Card) string {
 	s := lipgloss.NewStyle().
 		Bold(true).
 		Align(lipgloss.Top, lipgloss.Left).
-		Render(c.suit.String())
+		Render(c.Suit.String())
 	s += "\n"
 	s += lipgloss.NewStyle().
 		Bold(true).
 		MarginLeft(2).
-		Render(c.rank.String())
+		Render(c.Face.String())
 	s = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		Render(s)
@@ -178,25 +184,42 @@ func print_card(c card) string {
 func print_player(m model) string {
 	p_width := 60
 	p := m.player
-	cards := lipgloss.NewStyle().Margin(0, 2).Render(print_cards(p.hands[m.selected_hand].cards))
+	//TODO multi hand cards := lipgloss.NewStyle().Margin(0, 2).Render(print_hand(p.hands[m.selected_hand].cards))
+	cards_color := lipgloss.Color("#FFFFFF")
+	if p.Hand.IsLocked() {
+		cards_color = lipgloss.Color("#708090")
+	}
+	if p.Hand.Total() > 21 {
+		cards_color = lipgloss.Color("#FF0000")
+	}
+	if p.Hand.Total() == 21 {
+		cards_color = lipgloss.Color("#00FF00")
+	}
+
+	cards := lipgloss.NewStyle().Margin(0, 2).Foreground(cards_color).Render(print_hand(p.Hand))
 	page := lipgloss.NewStyle().
 		Foreground(subtle).
 		Bold(true).
-		Render(fmt.Sprintf("%d/%d", m.selected_hand + 1, len(p.hands)))
+		// TODO multihand Render(fmt.Sprintf("%d/%d", m.selected_hand + 1, len(p.hands)))
+		Render(fmt.Sprintf("%d/%d", 1, 1))
 	page_spacer := lipgloss.NewStyle().
-		Width((p_width - lipgloss.Width(cards)) / 2 - lipgloss.Width(page)).
-		Render();
+		Width((p_width-lipgloss.Width(cards))/2 - lipgloss.Width(page)).
+		Render()
+	betAmount := uint(0)
+	if p.Hand != nil {
+		betAmount = p.Hand.Bet
+	}
 	bet := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFBF00")).
 		Bold(true).
-		Render(fmt.Sprintf("%dg", p.hands[m.selected_hand].bet))
+		Render(fmt.Sprintf("%dg", betAmount))
 	bet_spacer := lipgloss.NewStyle().
-		Width(p_width / 2 - lipgloss.Width(cards) / 2 - lipgloss.Width(bet)).
+		Width(p_width/2 - lipgloss.Width(cards)/2 - lipgloss.Width(bet)).
 		Render()
 	balance := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFBF00")).
 		Bold(true).
-		Render(fmt.Sprintf("%dg", p.balance))
+		Render(fmt.Sprintf("%dg", p.Balance))
 
 	hr := lipgloss.NewStyle().
 		Width(p_width).
@@ -204,14 +227,44 @@ func print_player(m model) string {
 		BorderForeground(subtle).
 		Render("")
 
-	s := lipgloss.JoinHorizontal(lipgloss.Bottom, bet, bet_spacer , cards, page_spacer, page)
+	s := lipgloss.JoinHorizontal(lipgloss.Bottom, bet, bet_spacer, cards, page_spacer, page)
 	s = lipgloss.JoinVertical(lipgloss.Center, s, hr)
 	s = lipgloss.JoinVertical(lipgloss.Left, s, balance)
 	return s
 }
 
+var game = bj.CreateGame(bj.CreateSettings())
+var player = game.AddPlayerWithBalance(100)
+
 func main() {
+	// set up logger
+	f, _ := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	defer f.Close()
+	log.SetOutput(f)
+
 	p := tea.NewProgram(initalModel(), tea.WithAltScreen())
+
+	// set up game
+	game.OnGameUpdate = func(bg *bj.BlackjackGame) {
+		go func() {
+			log.Printf("\n---\ngame_update: %v\n\nplayers:", game.GameState)
+
+			log.Println(player.String())
+
+			log.Println("Dealer: ", game.Dealer.String())
+
+			if game.GameState == bj.NoState {
+				go func() {
+					time.Sleep(10 * time.Millisecond)
+					game.SetPlayerBet(player.PlayerNum, 25)
+				}()
+				go game.Start()
+			}
+			 p.Send(update{})
+		}()
+	}
+
+	// start ui
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
