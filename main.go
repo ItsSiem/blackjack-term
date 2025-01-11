@@ -123,51 +123,15 @@ func (m model) View() string {
 
 func print_dealer(m model) string {
 	s := lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("Dealer:"))
-	s = lipgloss.JoinVertical(lipgloss.Center, s, print_hand(m.game.Dealer, true))
+	s = lipgloss.JoinVertical(lipgloss.Center, s, table.RenderHand(m.game.Dealer, true))
 	return s
-}
-
-func print_hand(hand *bj.Hand, dealer bool) string {
-	s := ""
-	if hand == nil {
-		return s
-	}
-	for i, c := range hand.Cards {
-		if dealer && i == 0 {
-			s = lipgloss.JoinHorizontal(lipgloss.Top, s, table.RenderCard(c, true))
-			continue
-		}
-		s = lipgloss.JoinHorizontal(lipgloss.Top, s, table.RenderCard(c, false))
-	}
-	col := special
-	if hand.IsLocked() {
-		col = subtle
-	}
-	if hand.Total() == 21 {
-		col = highlight
-	}
-	if hand.Total() > 21 {
-		col = lipgloss.AdaptiveColor{Light: "#FF0000", Dark: "FF0000"}
-	}
-	return lipgloss.NewStyle().Foreground(col).Render(s)
 }
 
 func print_player(m model) string {
 	p_width := 60
 	p := m.player
 	//TODO multi hand cards := lipgloss.NewStyle().Margin(0, 2).Render(print_hand(p.hands[m.selected_hand].cards))
-	cards_color := lipgloss.Color("#FFFFFF")
-	if p.Hand.IsLocked() {
-		cards_color = lipgloss.Color("#708090")
-	}
-	if p.Hand.Total() > 21 {
-		cards_color = lipgloss.Color("#FF0000")
-	}
-	if p.Hand.Total() == 21 {
-		cards_color = lipgloss.Color("#00FF00")
-	}
-
-	cards := lipgloss.NewStyle().Margin(0, 2).Foreground(cards_color).Render(print_hand(p.Hand, false))
+	cards := lipgloss.NewStyle().Margin(0, 2).Render(table.RenderHand(p.Hand, false))
 	page := lipgloss.NewStyle().
 		Foreground(subtle).
 		Bold(true).
@@ -204,7 +168,7 @@ func print_player(m model) string {
 	return s
 }
 
-var game = bj.CreateGame()
+var game = bj.CreateGame(&bj.Settings{TimeBetweenRounds: 5 * time.Second, DealCardTime: 500 * time.Millisecond})
 var player = game.AddPlayerWithBalance(100)
 
 func main() {

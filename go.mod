@@ -7,7 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/lipgloss v1.0.0
-	github.com/kraanter/blackjack v0.3.0
+	github.com/kraanter/blackjack v0.2.7
 )
 
 require (
