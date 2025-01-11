@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	bj "github.com/kraanter/blackjack/pkg/blackjack"
+	"blackjack-term/table"
 )
 
 var (
@@ -20,7 +21,6 @@ var (
 	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	highlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
 	special   = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
-	table     = lipgloss.Color("#0c3008")
 
 	// Styles
 	header_style = lipgloss.NewStyle().
@@ -53,23 +53,6 @@ func initalModel() model {
 type update struct{}
 
 func (m model) Init() tea.Cmd {
-	// Just return `nil`, which means "no I/O right now, please."
-	// m.game.OnGameUpdate = func(bg *bj.BlackjackGame) {
-	// 	log.Printf("\n---\ngame_update: %v\n\nplayers:", game.GameState)
-	//
-	// 	log.Println(player.String())
-	//
-	// 	log.Println("Dealer: ", game.Dealer.String())
-	//
-	// 	if game.GameState == bj.NoState {
-	// 		go func() {
-	// 			time.Sleep(10 * time.Millisecond)
-	// 			game.SetPlayerBet(player.PlayerNum, 25)
-	// 		}()
-	// 		go game.Start()
-	// 	}
-	// 	p.Send(update{})
-	// }
 	return nil
 }
 
@@ -140,45 +123,33 @@ func (m model) View() string {
 
 func print_dealer(m model) string {
 	s := lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("Dealer:"))
-	s = lipgloss.JoinVertical(lipgloss.Center, s, print_hand(m.game.Dealer))
+	s = lipgloss.JoinVertical(lipgloss.Center, s, print_hand(m.game.Dealer, true))
 	return s
 }
 
-func print_hand(hand *bj.Hand) string {
+func print_hand(hand *bj.Hand, dealer bool) string {
 	s := ""
 	if hand == nil {
 		return s
 	}
-	for _, c := range hand.Cards {
-		s = lipgloss.JoinHorizontal(lipgloss.Top, s, print_card(c))
+	for i, c := range hand.Cards {
+		if dealer && i == 0 {
+			s = lipgloss.JoinHorizontal(lipgloss.Top, s, table.RenderCard(c, true))
+			continue
+		}
+		s = lipgloss.JoinHorizontal(lipgloss.Top, s, table.RenderCard(c, false))
 	}
-	col := special 
+	col := special
 	if hand.IsLocked() {
 		col = subtle
 	}
 	if hand.Total() == 21 {
-		col = highlight 
+		col = highlight
 	}
 	if hand.Total() > 21 {
 		col = lipgloss.AdaptiveColor{Light: "#FF0000", Dark: "FF0000"}
 	}
 	return lipgloss.NewStyle().Foreground(col).Render(s)
-}
-
-func print_card(c *bj.Card) string {
-	s := lipgloss.NewStyle().
-		Bold(true).
-		Align(lipgloss.Top, lipgloss.Left).
-		Render(c.Suit.String())
-	s += "\n"
-	s += lipgloss.NewStyle().
-		Bold(true).
-		MarginLeft(2).
-		Render(c.Face.String())
-	s = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		Render(s)
-	return s
 }
 
 func print_player(m model) string {
@@ -196,7 +167,7 @@ func print_player(m model) string {
 		cards_color = lipgloss.Color("#00FF00")
 	}
 
-	cards := lipgloss.NewStyle().Margin(0, 2).Foreground(cards_color).Render(print_hand(p.Hand))
+	cards := lipgloss.NewStyle().Margin(0, 2).Foreground(cards_color).Render(print_hand(p.Hand, false))
 	page := lipgloss.NewStyle().
 		Foreground(subtle).
 		Bold(true).
@@ -233,7 +204,7 @@ func print_player(m model) string {
 	return s
 }
 
-var game = bj.CreateGame(bj.CreateSettings())
+var game = bj.CreateGame()
 var player = game.AddPlayerWithBalance(100)
 
 func main() {
@@ -260,7 +231,7 @@ func main() {
 				}()
 				go game.Start()
 			}
-			 p.Send(update{})
+			p.Send(update{})
 		}()
 	}
 
