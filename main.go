@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"blackjack-term/table"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/kraanter/blackjack/pkg/blackjack"
 	bj "github.com/kraanter/blackjack/pkg/blackjack"
-	"blackjack-term/table"
 )
 
 var (
@@ -123,7 +125,7 @@ func (m model) View() string {
 
 func print_dealer(m model) string {
 	s := lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("Dealer:"))
-	s = lipgloss.JoinVertical(lipgloss.Center, s, table.RenderHand(m.game.Dealer, true))
+	s = lipgloss.JoinVertical(lipgloss.Center, s, table.RenderHand(m.game.Dealer, m.game.GameState < blackjack.DealerState))
 	return s
 }
 
